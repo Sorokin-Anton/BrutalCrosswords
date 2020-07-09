@@ -1,7 +1,10 @@
 import Data.List (transpose)
+import Data.Char (isSpace)
 
+data Cell = Empty | Block | Filled Char deriving Eq
 
-data Cell = Empty | Block | Filled Char
+noEmpty :: Crossword -> Bool
+noEmpty = all (notElem Empty) . getCrossword
 
 instance Show Cell where
     show Empty = "-"
@@ -45,7 +48,7 @@ instance Read Words where
 
 
 tryPut :: Crossword -> String -> [Crossword]
-tryPut c s = tryPutHorizontal c s ++ tryPutVertical c s
+tryPut c s = c : tryPutHorizontal c s ++ tryPutVertical c s
 
 tryPutHorizontal :: Crossword -> String -> [Crossword]
 tryPutHorizontal cr s =
@@ -67,9 +70,9 @@ puttedHorizontal (x, y) (Crossword arr) s = Crossword $ p1 ++ p2 ++ p3 where
         q2 = drop (x - 1 + length s) a
 
 canPutHorizontal :: (Int, Int) -> Crossword -> String -> Bool
-canPutHorizontal (x, y) (Crossword arr) s = checkPattern (arr!!(y-1)) x s where
-    checkPattern :: [Cell] -> Int -> String -> Bool
-    checkPattern a x s = and $ zipWith checkMatch part s where
+canPutHorizontal (x, y) (Crossword arr) = checkPattern (arr!!(y-1)) where
+    checkPattern :: [Cell] -> String -> Bool
+    checkPattern a s = and $ zipWith checkMatch part s where
         part = drop (x-1) $ take (-1 + x + length s) a
 
 
@@ -80,6 +83,8 @@ tryPutMany cr (Words (x:xs)) = tryPut cr x >>= \new_cr -> tryPutMany new_cr (Wor
 
 main :: IO ()
 main = do
-    z <- lines <$> readFile "crossword.txt"
-    let (v,s) = (read.unlines.init $ z, read.last $ z)
-    mapM_ print $ tryPutMany v s
+    v <- read <$> readFile "crossword.txt"
+    s <- read . filter (not . isSpace) <$> readFile "dictionary.txt"
+    f . filter noEmpty $ tryPutMany v s where
+        f [] = putStrLn "No correct fillings"
+        f x = mapM_ print x
